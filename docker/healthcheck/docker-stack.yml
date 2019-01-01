@@ -23,9 +23,3 @@ services:
       restart_policy:
         condition: any
         delay: "0"
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3001"]
-      interval: 2m
-      timeout: 10s
-      retries: 3
-      start_period: 40s   
