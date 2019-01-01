@@ -1,0 +1,12 @@
+GET 1.1 /
+On host: bar_bar-14-oo1uxhvrpf1cv4thx5fi28b74
+NODE_ID oo1uxhvrpf1cv4thx5fi28b74
+NODE_HOSTNAME node13.dq.gg
+SERVICE_ID d9bthw7o42yi2d1m2vru2dyza
+SERVICE_NAME bar_bar
+SERVICE_LABELS map[com.docker.stack.namespace:bar com.docker.stack.image:node]
+SERVICE_DNSPEERS tasks.bar_bar
+TASK_ID oax4kwkh3wpl680lokm4ark24
+TASK_NAME bar_bar.14.oax4kwkh3wpl680lokm4ark24
+TASK_SLOT 14
+SWARM_SERVICE_TASK:

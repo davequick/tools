@@ -1,0 +1,29 @@
+GET 1.1 /
+On host: bar_bar-3oznhtz2evnar9276z9c8x3sd-3oznhtz2evnar9276z9c8x3sd
+NODE_ID 3oznhtz2evnar9276z9c8x3sd
+NODE_HOSTNAME manager02.dq.gg
+SERVICE_ID rvadugai89kowdt9u22n5fbub
+SERVICE_NAME bar_bar
+SERVICE_LABELS map[com.docker.stack.image:node com.docker.stack.namespace:bar]
+SERVICE_DNSPEERS tasks.bar_bar
+TASK_ID rkswjukouty202ybodkcn4oqj
+TASK_NAME bar_bar.3oznhtz2evnar9276z9c8x3sd.rkswjukouty202ybodkcn4oqj
+TASK_SLOT 3oznhtz2evnar9276z9c8x3sd
+SWARM_SERVICE_TASK:
+
+
+killed that container - it auto relaunched and new version=
+GET 1.1 /
+On host: bar_bar-3oznhtz2evnar9276z9c8x3sd-3oznhtz2evnar9276z9c8x3sd
+NODE_ID 3oznhtz2evnar9276z9c8x3sd
+NODE_HOSTNAME manager02.dq.gg
+SERVICE_ID rvadugai89kowdt9u22n5fbub
+SERVICE_NAME bar_bar
+SERVICE_LABELS map[com.docker.stack.namespace:bar com.docker.stack.image:node]
+SERVICE_DNSPEERS tasks.bar_bar
+TASK_ID tc0dxlbo72g5eafgfgxxgoodhh5ex
+TASK_NAME bar_bar.3oznhtz2evnar9276z9c8x3sd.tc0dxlbo72g5eafgfgxxhh5ex
+TASK_SLOT 3oznhtz2evnar9276z9c8x3sd
+SWARM_SERVICE_TASK:
+
+3oznhtz2evnar9276z9c8x3sd askid stayed consistent

@@ -1,0 +1,36 @@
+---
+version: "3.3"
+
+services:
+  consul:
+    image: consul
+    hostname: "consul-{{.Task.Slot}}"
+    labels:
+      gg.dq.desscription: "consul"
+    environment:
+      NODE_ID: "{{.Node.ID}}"
+      NODE_HOSTNAME: "{{.Node.Hostname}}"
+      SERVICE_ID: "{{.Service.ID}}"
+      SERVICE_NAME: "{{.Service.Name}}"
+      SERVICE_LABELS: "{{js .Service.Labels}}"
+      SERVICE_DNSPEERS: "tasks.{{.Service.Name}}"
+      TASK_ID: "{{.Task.ID}}"
+      TASK_NAME: "{{.Task.Name}}"
+      TASK_SLOT: "{{.Task.Slot}}"
+      CONSUL_LOCAL_CONFIG: '{ "datacenter":"docker-cluster", "enable_debug":true, "leave_on_terminate": true, "skip_leave_on_interrupt": false }'
+    command: ["agent","-retry-join=tasks.consul", "-server=true", "-bootstrap-expect=3"]
+    dns:
+      - 8.8.8.8
+    networks:
+      - consul-network
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: any
+        delay: 30s
+        window: 300s
+networks:
+  consul-network:
+    driver: overlay
+    internal: true
+    attachable: true
