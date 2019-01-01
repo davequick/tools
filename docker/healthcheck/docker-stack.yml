@@ -18,8 +18,17 @@ services:
       TASK_SLOT: "{{.Task.Slot}}"
     ports:
       - 6969:3001
+    networks:
+      - healthcheck
     deploy:
       mode: global
       restart_policy:
         condition: any
         delay: "0"
+networks:
+  healthcheck:
+    driver: overlay
+    internal: true
+    external: false
+
+
