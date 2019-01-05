@@ -1,0 +1,31 @@
+FROM openjdk:8-jre-alpine
+
+ARG KAFKA_VERSION=2.1.0
+ARG KAFKA_MIRROR=http://www-eu.apache.org
+ARG KAFKA_SCALA_VERSION=2.12
+
+LABEL name="kafka" version=${KAFKA_VERSION}
+
+ENV KAFKA_HOME /opt/kafka
+
+COPY ./start.sh /usr/local/bin
+
+RUN apk add --no-cache wget bash bind-tools \
+    && mkdir /opt \
+    && wget -q -O - ${KAFKA_MIRROR}/dist//kafka/${KAFKA_VERSION}/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz  | tar -xzf - -C /opt \
+    && mv /opt/kafka_* $KAFKA_HOME \
+    && chown -R root:root $KAFKA_HOME \
+    && addgroup -S kafka \
+    && adduser -h /var/lib/kafka -G kafka -S -H -s /sbin/nologin kafka \
+    && mkdir /var/lib/kafka \
+    && chown -R kafka:kafka /var/lib/kafka \
+    && mkdir /var/log/kafka \
+    && chown -R kafka:kafka /var/log/kafka \
+    && chmod +x /usr/local/bin/start.sh
+
+EXPOSE 9092
+
+VOLUME ["/var/lib/kafka", "/var/log/kafka"]
+
+ENTRYPOINT ["/usr/local/bin/start.sh"]
+

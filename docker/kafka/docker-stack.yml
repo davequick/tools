@@ -1,0 +1,54 @@
+---
+version: '3.5'
+
+services:
+  zookeeper:
+    image: davequick/image:zookeeper
+    container_name: zookeeper
+#    ports:
+#      - "2181:2181"
+    restart: always
+    networks:
+      kafka:
+  kafka-broker:
+    image: davequick/image:kafka-broker
+    container_name: kafka-broker
+    restart: always
+    depends_on:
+      - zookeeper
+    environment:
+      - KAFKA_BROKER_NAME=kafka-broker
+      - KAFKA_BROKER_ID=1
+      - KAFKA_BROKER_PORT=9092
+      - REPLICATION_FACTOR=2
+#      - ADVERTISED_LISTENER=192.168.99.240  <- this needs to be looked up
+      - ZOOKEEPER_NAME=zookeeper
+      - KAFKA_CREATE_TOPICS=True
+    ports:
+      - "9092:9092"
+    networks:
+      kafka:
+  kafka-broker2:
+    image: davequick/image:kafka-broker
+    container_name: kafka-broker2
+    restart: always
+    depends_on:
+      - zookeeper
+    environment:
+      - KAFKA_BROKER_NAME=kafka-broker2
+      - KAFKA_BROKER_ID=2
+      - KAFKA_BROKER_PORT=9093
+      - REPLICATION_FACTOR=2
+#      - ADVERTISED_LISTENER=HOSTIP
+      - ZOOKEEPER_NAME=zookeeper
+      - KAFKA_CREATE_TOPICS=True
+    ports:
+      - "9093:9093"
+    networks:
+      kafka:
+
+networks:
+  kafka:
+    driver: overlay
+    intenal: true
+
