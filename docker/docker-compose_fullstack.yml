@@ -1,0 +1,154 @@
+---
+version: "3.7"
+
+services:
+  gateway:
+    image: davequick/image:gateway
+    labels:
+      gg.dq.description: "gateway"
+    environment: &global_env
+      DEPLOYED_ENVIRONMENT: production
+      NODE_ID: "{{.Node.ID}}"
+      NODE_HOSTNAME: "{{.Node.Hostname}}"
+      SERVICE_ID: "{{.Service.ID}}"
+      SERVICE_NAME: "{{.Service.Name}}"
+      SERVICE_LABELS: "{{js .Service.Labels}}"
+      SERVICE_DNSPEERS: "tasks.{{.Service.Name}}"
+      TASK_ID: "{{.Task.ID}}"
+      TASK_NAME: "{{.Task.Name}}"
+      TASK_SLOT: "{{.Task.Slot}}"
+    networks:
+      - backend
+    dns:
+      - 8.8.8.8
+    ports:
+      - "2222:22"
+
+#  consul:
+#    image: consul
+#    hostname: "consul-{{.Task.Slot}}"
+#    labels:
+#      gg.dq.description: "consul"
+#    environment:
+#      <<: *global_env
+#      CONSUL_LOCAL_CONFIG: '{ "datacenter":"docker-cluster", "enable_debug":true, "leave_on_terminate": true, "skip_leave_on_interrupt": false }'
+#    command: ["agent","-retry-join=tasks.consul", "-server=true", "-bootstrap-expect=3"]
+#    networks:
+#      - backend
+#    deploy:
+#      replicas: 3
+#      restart_policy:
+#        condition: any
+#        delay: 60s
+#
+#  zookeeper:
+#    image: davequick/image:zookeeper
+#    labels:
+#      gg.dq.description: "zookeeper"
+#    environment:
+#      <<: *global_env
+#    depends_on:
+#      - consul
+#    networks:
+#      - backend
+#
+#  kafka:
+#    image: davequick/image:kafka
+#    labels:
+#      gg.dq.description: "kafka"
+#    environment:
+#      <<: *global_env
+#    depends_on:
+#      - consul
+#      - zookeeper
+#    networks:
+#      - backend
+#
+#  elasticsearch:
+#    image: davequick/image:elasticsearch
+#    labels:
+#      gg.dq.description: "elasticsearch"
+#    environment:
+#      <<: *global_env
+#    depends_on:
+#      - consul
+#    networks:
+#      - backend
+#
+#  kibana:
+#    image: davequick/image:kibana
+#    labels:
+#      gg.dq.description: "kibana"
+#    environment:
+#      <<: *global_env
+#    depends_on:
+#      - consul
+#      - elasticsearch
+#    networks:
+#      - backend
+#
+#  logstash:
+#    image: davequick/image:logstash
+#    labels:
+#      gg.dq.description: "logstash"
+#    environment:
+#      <<: *global_env
+#    depends_on:
+#      - consul
+#      - kafka
+#      - elasticsearch
+#    networks:
+#      - backend
+#
+#  cassandra:
+#    image: davequick/image:logstash
+#    labels:
+#      gg.dq.description: "cassandra"
+#    environment:
+#      <<: *global_env
+#    depends_on:
+#      - consul
+#    networks:
+#      - backend
+#
+#  redis:
+#    image: davequick/image:redis
+#    labels:
+#      gg.dq.description: "redis"
+#    environment:
+#      <<: *global_env
+#    depends_on:
+#      - consul
+#    networks:
+#      - backend
+#
+#  krakend:
+#    image: davequick/image:krakend#
+#    labels:
+#      gg.dq.description: "krakend"
+#    environment:
+#      <<: *global_env
+#    depends_on:
+#      - consul
+#    networks:
+#      - backend
+#
+#
+#  mongodb:
+#    image: davequick/image:mongodb
+#    labels:
+#      gg.dq.description: "mongodb"
+#    environment:
+#      <<: *global_env
+#    depends_on:
+#      - consul
+#    networks:
+#      - backend
+#
+
+networks:
+  backend:
+    external: true
+    driver: overlay
+    internal: true
+    attachable: true
