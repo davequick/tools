@@ -17,18 +17,15 @@ services:
       TASK_NAME: "{{.Task.Name}}"
       TASK_SLOT: "{{.Task.Slot}}"
     ports:
-      - 6969:3001
+      - 6969:8080
     networks:
-      - healthcheck
+      - backend
     deploy:
       mode: global
       restart_policy:
         condition: any
         delay: "0"
+
 networks:
-  healthcheck:
-    driver: overlay
-    internal: true
-    external: false
-
-
+  backend:
+    external: true

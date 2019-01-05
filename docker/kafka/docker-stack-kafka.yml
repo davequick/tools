@@ -1,15 +1,13 @@
 ---
-version: '3.5'
+version: '3.7'
 
 services:
   zookeeper:
     image: davequick/image:zookeeper
     container_name: zookeeper
-#    ports:
-#      - "2181:2181"
     restart: always
     networks:
-      kafka:
+      backend:
   kafka-broker:
     image: davequick/image:kafka-broker
     container_name: kafka-broker
@@ -27,7 +25,7 @@ services:
     ports:
       - "9092:9092"
     networks:
-      kafka:
+      backend:
   kafka-broker2:
     image: davequick/image:kafka-broker
     container_name: kafka-broker2

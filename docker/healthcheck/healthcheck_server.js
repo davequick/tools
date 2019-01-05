@@ -25,4 +25,4 @@ function info(req) {
 }
 
 http.createServer((req,res) => { res.end(info(req)); })
-    .listen(3001, "0.0.0.0", ()=> {})
+    .listen(8080, "0.0.0.0", ()=> {})

@@ -24,22 +24,22 @@ services:
     ports:
       - "2222:22"
 
-#  consul:
-#    image: consul
+  consul:
+    image: consul
 #    hostname: "consul-{{.Task.Slot}}"
-#    labels:
-#      gg.dq.description: "consul"
-#    environment:
-#      <<: *global_env
-#      CONSUL_LOCAL_CONFIG: '{ "datacenter":"docker-cluster", "enable_debug":true, "leave_on_terminate": true, "skip_leave_on_interrupt": false }'
-#    command: ["agent","-retry-join=tasks.consul", "-server=true", "-bootstrap-expect=3"]
-#    networks:
-#      - backend
-#    deploy:
-#      replicas: 3
-#      restart_policy:
-#        condition: any
-#        delay: 60s
+    labels:
+      gg.dq.description: "consul"
+    environment:
+      <<: *global_env
+      CONSUL_LOCAL_CONFIG: '{ "datacenter":"docker-cluster", "enable_debug":true, "leave_on_terminate": true, "skip_leave_on_interrupt": false }'
+    command: ["agent","-retry-join=tasks.consul", "-server=true", "-bootstrap-expect=3"]
+    networks:
+      - backend
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: any
+        delay: 60s
 #
 #  zookeeper:
 #    image: davequick/image:zookeeper

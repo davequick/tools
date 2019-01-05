@@ -22,15 +22,15 @@ services:
     dns:
       - 8.8.8.8
     networks:
-      - consul-network
+      - backend
     deploy:
       replicas: 3
       restart_policy:
         condition: any
         delay: 30s
-        window: 300s
 networks:
-  consul-network:
+  backend:
+    external: true
     driver: overlay
     internal: true
     attachable: true
