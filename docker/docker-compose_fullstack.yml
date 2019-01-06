@@ -24,6 +24,15 @@ services:
     ports:
       - "2222:22"
 
+  spy:
+    image: davequick/image:spy
+    environment: 
+      <<: *global_env
+    command: ["sleep", "365d"]
+    networks:
+      - backend
+      - bridge
+
   consul:
     image: consul
 #    hostname: "consul-{{.Task.Slot}}"
@@ -152,3 +161,7 @@ networks:
     driver: overlay
     internal: true
     attachable: true
+  bridge:
+    external: true
+    driver: bridge
+
