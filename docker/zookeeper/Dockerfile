@@ -8,7 +8,7 @@ LABEL maintainer="dq@dq.gg" name="zookeeper" version=${ZOOKEEPER_VERSION}
 COPY ./docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
-    && apk add --no-cache wget bash
+    && apk add --no-cache wget bash \
     && mkdir /opt \
     && wget -q -O - ${ZOOKEEPER_MIRROR}/dist/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-${ZOOKEEPER_VERSION}.tar.gz | tar -xzf - -C /opt \
     && mv /opt/zookeeper-* /opt/zookeeper \
