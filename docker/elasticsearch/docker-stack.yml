@@ -5,14 +5,9 @@ services:
 
   elasticsearch:
     image: davequick/image:elasticsearch
-    ports:
-      - "9200:9200"
-      - "9300:9300"
     configs:
       - source: elastic_config
         target: /usr/share/elasticsearch/config/elasticsearch.yml
-    environment:
-      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
     networks:
       - backend
     deploy:
@@ -21,7 +16,7 @@ services:
 
 configs:
   elastic_config:
-    file: ./config/elasticsearch.yml
+    file: ./elasticsearch.yml
 
 networks:
   backend:
