@@ -35,7 +35,7 @@ services:
 
   consul:
     image: consul
-#    hostname: "consul-{{.Task.Slot}}"
+    hostname: "consul-{{.Task.Slot}}."
     labels:
       gg.dq.description: "consul"
     environment:

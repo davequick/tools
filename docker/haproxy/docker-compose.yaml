@@ -1,0 +1,42 @@
+---
+#super  short sample to check out later
+version: "3.7"
+
+networks:
+  main:
+
+volumes:
+  jsdoc-data:
+    driver: local
+  coverage-data:
+    driver: local
+
+services:
+  nginx:
+    build: ../nginx
+    depends_on:
+      - haproxy
+    networks:
+      - main
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - jsdoc-data:/www/jsdoc
+      - coverage-data:/www/coverage
+
+  haproxy:
+    image: dockercloud/haproxy:1.5.3
+    ports:
+      - 80
+      - 1936:1936
+    links:
+      - app
+    networks:
+      - main
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - MODE=http
+      - STATS_PORT=1936
+      - STATS_AUTH=username:password
