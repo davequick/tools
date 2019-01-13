@@ -1,47 +1,87 @@
 ---
 version: "3.7"
 
+x-node-env:
+  &global_env
+  DEPLOYED_ENVIRONMENT: dev
+  NODE_ID: "{{.Node.ID}}"
+  NODE_HOSTNAME: "{{.Node.Hostname}}"
+  SERVICE_ID: "{{.Service.ID}}"
+  SERVICE_NAME: "{{.Service.Name}}"
+  SERVICE_LABELS: "{{js .Service.Labels}}"
+  SERVICE_DNSPEERS: "tasks.{{.Service.Name}}"
+  STACK_IMAGE: '{{index .Service.Labels "com.docker.stack.image"}}'
+  STACK_NAMESPACE: '{{index .Service.Labels "com.docker.stack.namespace"}}'
+  TASK_ID: "{{.Task.ID}}"
+  TASK_NAME: "{{.Task.Name}}"
+  TASK_SLOT: "{{.Task.Slot}}"
+
 services:
+  healthcheck:
+    image: davequick/image:healthcheck
+    labels:
+      gg.dq.desscription: "healthcheck"
+    environment:
+      <<: *global_env
+    ports:
+      - 6970:8080
+    networks:
+      - bridge
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: vip
+      restart_policy:
+        condition: any
+        delay: 60s
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 60s
+        monitor: 30s
+        order: stop-first
+        failure_action: rollback
+      placement:
+        constraints:
+          - node.role == worker
+        preferences:
+          - spread: node.labels.gg.dq.availability_zone
+
   gateway:
     image: davequick/image:gateway
     labels:
       gg.dq.description: "gateway"
-    environment: &global_env
-      DEPLOYED_ENVIRONMENT: production
-      NODE_ID: "{{.Node.ID}}"
-      NODE_HOSTNAME: "{{.Node.Hostname}}"
-      SERVICE_ID: "{{.Service.ID}}"
-      SERVICE_NAME: "{{.Service.Name}}"
-      SERVICE_LABELS: "{{js .Service.Labels}}"
-      SERVICE_DNSPEERS: "tasks.{{.Service.Name}}"
-      TASK_ID: "{{.Task.ID}}"
-      TASK_NAME: "{{.Task.Name}}"
-      TASK_SLOT: "{{.Task.Slot}}"
+    environment:
+      <<: *global_env
     networks:
+      - bridge
       - backend
     dns:
       - 8.8.8.8
     ports:
       - "2222:22"
 
-  spy:
+  devboxspy:
     image: davequick/image:spy
-    environment: 
+    hostname: '{{index .Service.Labels "com.docker.stack.namespace"}}-{{index .Service.Labels "com.docker.stack.image"}}-{{.Task.Slot}}'
+    labels:
+      gg.dq.description: "spy"
+    environment:
       <<: *global_env
     command: ["sleep", "365d"]
     networks:
-      - backend
       - bridge
+      - backend
 
   consul:
     image: consul
-    hostname: "consul-{{.Task.Slot}}."
+    hostname: '{{index .Service.Labels "com.docker.stack.namespace"}}-{{index .Service.Labels "com.docker.stack.image"}}-{{.Task.Slot}}'
     labels:
       gg.dq.description: "consul"
     environment:
       <<: *global_env
       CONSUL_LOCAL_CONFIG: '{ "datacenter":"docker-cluster", "enable_debug":true, "leave_on_terminate": true, "skip_leave_on_interrupt": false }'
-    command: ["agent","-retry-join=tasks.consul", "-server=true", "-bootstrap-expect=3"]
+    command: ["agent","-retry-join=tasks.consul", "-ui", "-server=true", "-bootstrap-expect=3"]
     networks:
       - backend
     deploy:
@@ -49,6 +89,44 @@ services:
       restart_policy:
         condition: any
         delay: 60s
+      placement:
+#        constraints:
+        preferences:
+#          - node.role != manager
+          - spread: node.labels.zone
+
+networks:
+  backend:
+    external: true
+    driver: overlay
+    internal: true
+    attachable: true
+  bridge:
+    external: true
+    driver: bridge
+
+#  demo:
+#    image: ehazlett/docker-demo
+#    deploy:
+#      replicas: 1
+#      labels:
+#        com.docker.lb.hosts: test.davequick.localhost
+#        com.docker.lb.network: bridge
+#        com.docker.lb.port: 8080
+#    networks:
+#      - backend
+
+#  registrator:
+#    image: gliderlabs/registrator
+#    environment:
+#      <<: *global_env
+#    command: consul://tasks.consul:8500
+#    volumes:dock
+#      - /var/run/docker.sock:/tmp/docker.sock
+#    networks:
+#      - bridge
+#      - backend
+
 #
 #  zookeeper:
 #    image: davequick/image:zookeeper
@@ -73,17 +151,38 @@ services:
 #    networks:
 #      - backend
 #
+
+
+
+# https://github.com/MykhayloLohvynenko/mentee
 #  elasticsearch:
 #    image: davequick/image:elasticsearch
 #    labels:
 #      gg.dq.description: "elasticsearch"
 #    environment:
 #      <<: *global_env
+#      ES_JAVA_OPTS: '-Xms256m -Xmx256m'
+#      xpack.security.enabled: 'false'
+#      xpack.monitoring.enabled: 'false'
+#      xpack.graph.enabled: 'false'
+#      xpack.watcher.enabled: 'false'
 #    depends_on:
 #      - consul
 #    networks:
 #      - backend
-#
+#    deploy:
+#      placement:
+#        constraints:
+#          - node.role == worker
+
+#    deploy:
+#      replicas: 1
+#      placement:
+#        constraints:
+#          - node.hostname == agent1
+
+
+
 #  kibana:
 #    image: davequick/image:kibana
 #    labels:
@@ -155,13 +254,250 @@ services:
 #      - backend
 #
 
-networks:
-  backend:
-    external: true
-    driver: overlay
-    internal: true
-    attachable: true
-  bridge:
-    external: true
-    driver: bridge
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#
+#
+#
+#
+#
+#version: '2'
+#services:
+#  my-traefik:
+#    image: traefik
+#    command: -c /dev/null --web --docker --docker.domain=dck.mojserver.mk
+#    labels:
+#      - "traefik.enable=false"
+#    ports:
+#      - "80:80"
+#      - "8080:8080"
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+#
+#  131513-eureka:
+#    image: 131513/soa-eureka
+#    labels:
+#      - "traefik.port=8761"
+#      - "traefik.backend=131513-eureka"
+#      - "traefik.frontend.rule=PathPrefixStrip:/131513-eureka"
+#    expose:
+#      - "8761"
+#    ports:
+#      - "8761:8761"
+#
+#  131513-zuul:
+#    image: 131513/soa-zuul
+#    labels:
+#      - "traefik.port=8080"
+#      - "traefik.backend=131513-zuul"
+#      - "traefik.frontend.rule=PathPrefixStrip:/131513-zuul"
+#
+#  131513-gateway:
+#    image: 131513/soa-gateway
+#    labels:
+#      - "traefik.port=8080"
+#      - "traefik.backend=131513-gateway"
+#      - "traefik.frontend.rule=PathPrefixStrip:/131513-gateway"
+#
+#  131513-mysql:
+#    image: mysql
+#    environment:
+#      MYSQL_ROOT_PASSWORD:
+#      MYSQL_USER: root
+#      MYSQL_PASSWORD: databasepass!
+#      MYSQL_DATABASE: iknow_db
+#    volumes:
+#      - 131513-datavolume:/var/lib/mysql
+#    labels:
+#      - "traefik.enable=false"
+#
+#  auth-service:
+#    image: 131513/auth-service
+#    labels:
+#      - "traefik.port=8080"
+#      - "traefik.backend=auth-service"
+#      - "traefik.frontend.rule=PathPrefixStrip:/auth-service"
+#    links:
+#      - 131513-mysql
+#      - 131513-eureka
+#      - 131513-zuul
+#      - 131513-gateway
+#    depends_on:
+#      - 131513-mysql
+#      - 131513-traefik
+#      - 131513-eureka
+#      - 131513-zuul
+#      - 131513-gateway
+#
+#  studentdossier-service:
+#    image: 131513/studentdossier-service
+#    labels:
+#      - "traefik.port=8080"
+#      - "traefik.backend=studentdossier-service"
+#      - "traefik.frontend.rule=PathPrefixStrip:/studentdossier-service"
+#    links:
+#      - 131513-mysql
+#      - 131513-eureka
+#      - 131513-zuul
+#      - 131513-gateway
+#    depends_on:
+#      - 131513-mysql
+#      - 131513-traefik
+#      - 131513-eureka
+#      - 131513-zuul
+#      - 131513-gateway
+#
+#  studentservice-service:
+#    image: 131513/studentservice-service
+#    labels:
+#      - "traefik.port=8080"
+#      - "traefik.backend=studentservice-service"
+#      - "traefik.frontend.rule=PathPrefixStrip:/studentservice-service"
+#    links:
+#      - 131513-mysql
+#      - 131513-eureka
+#      - 131513-zuul
+#      - 131513-gateway
+#    depends_on:
+#      - 131513-mysql
+#      - 131513-traefik
+#      - 131513-eureka
+#      - 131513-zuul
+#      - 131513-gateway
+#
+#  subject-service:
+#    image: 131513/subject-service
+#    labels:
+#      - "traefik.port=8080"
+#      - "traefik.backend=subject-service"
+#      - "traefik.frontend.rule=PathPrefixStrip:/subject-service"
+#    links:
+#      - 131513-mysql
+#      - 131513-eureka
+#      - 131513-zuul
+#      - 131513-gateway
+#    depends_on:
+#      - 131513-mysql
+#      - 131513-traefik
+#      - 131513-eureka
+#      - 131513-zuul
+#      - 131513-gateway
+#
+#volumes:
+#  131513-datavolume: {}
+
+#services:
+#  traefik:
+#    build: .
+#    command: --web --web.metrics.prometheus --web.metrics.prometheus.buckets="0.1,0.3,1.2,5.0" --docker --docker.domain=docker.localhost --logLevel=DEBUG
+#    ports:
+#      - "80:80"
+#      - "443:443"
+#      - "8080:8080"
+#    restart: always
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+#    networks:
+#      - reverseproxy
+#      - prometheus
+#    cap_drop:
+#      - all
+#    cap_add:
+#      - net_bind_service
+#    labels:
+#      - "traefik.port=8080"
+#      - "traefik.enable=true"
+#      - "traefik.backend=traefik"
+#      - "traefik.frontend.rule=Host:traefik.${DOMAIN_NAME}"
+#
+#networks:
+#  reverseproxy:
+#    driver: bridge
+#  prometheus:
+#    external:
+#      name: prometheus_back-tier
+#
+# example stack of a cluster-wide load balancer
+#version: '3.1'
+#
+#services:
+#  # traefik uses service labels to dynamically configure routes
+#  traefik:
+#    image: traefik
+#    command:
+#      - --web
+#      - --docker
+#      - --docker.swarmmode
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+#    deploy:
+#      placement:
+#        constraints:
+#          - node.role == manager
+#    ports:
+#      - 80:80
+#      - 8080:8080
+#    networks:
+#      - proxy
+#
+#networks:
+#  proxy:
+
+#hostname: 'couchdb-{{.Task.Slot}}.{{index .Service.Labels "com.docker.stack.namespace"}}'
+#x-media-cfg:
+#  &kz-media
+#  - type: bind
+#    source: ../../../../dev
+#    target: /opt/kazoo
+#    read_only: true
+#  - type: bind
+#    source: ./config.ini
+#    target: /etc/kazoo/config.ini
+#    read_only: true
+#  - type: bind
+#    source: ../media-files/kazoo
+#    target: /media-files
+#    read_only: true
+#
+#    volumes: *kz-media
+
+#x-devnode-cfg:
+#  &kz-dev
+#  - type: bind
+#    source: ../../../../dev
+#    target: /opt/kazoo
+#    read_only: false
+#  - type: bind
+#    source: ./config.ini
+#    target: /etc/kazoo/config.ini
+#    read_only: true
+#    volumes: *kz-dev
+
+#    - TELEGRAF_DEBUG=$TELEGRAF_DEBUG
+#      - TELEGRAF_QUIET=$TELEGRAF_QUIET
+#      - TELEGRAF_INTERVAL=$TELEGRAF_INTERVAL
+#      - TELEGRAF_INPUT_TIMEOUT=$TELEGRAF_INPUT_TIMEOUT
+#      # Specific
+#      - TELEGRAF_DEPENDS_ON=${CASSANDRA_MAIN_NAME}
+#      - WAIT_FOR=${INFLUXDB_NAME}
+#      - CASSANDRA_MAIN_URL=${CASSANDRA_MAIN_NAME}
+#      - CASSANDRA_COUNT_PORT=${CASSANDRA_COUNT_PORT}
+#      command: telegraf --output-filter ${TELEGRAF_OUTPUT_FILTER} -config /etc/telegraf/cassandra_count.conf

@@ -10,6 +10,8 @@ ENV OPENSSH_VERSION=${OPENSSH_VERSION} \
 
 ADD docker-entrypoint.sh /
 
+RUN echo "ssh gateway" > /etc/motd
+
 RUN apk update \
     && apk upgrade \
     && apk add openssh=${OPENSSH_VERSION} \
