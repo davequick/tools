@@ -3,7 +3,7 @@ FROM alpine:${ALPINE_VERSION}
 LABEL maintainer="dq@dq.gg"
 
 ENV ROOT_PASSWORD=root \
-    KEYPAIR_LOGIN=false
+    KEYPAIR_LOGIN=true
 
 ADD ./docker-entrypoint.sh /
 
@@ -11,7 +11,7 @@ RUN echo "ssh gateway" > /etc/motd
 
 RUN apk update \
     && apk upgrade \
-    && apk add openssh=7.7_p1-r3 \
+    && apk add openssh \
     && chmod +x /docker-entrypoint.sh \
     && mkdir -p /root/.ssh \
     && rm -rf /var/cache/apk/* /tmp/*
