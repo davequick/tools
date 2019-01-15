@@ -1,6 +1,7 @@
 ---
 version: "3.7"
 
+
 x-node-env:
   &global_env
   DEPLOYED_ENVIRONMENT: dev
@@ -16,13 +17,14 @@ x-node-env:
   TASK_NAME: "{{.Task.Name}}"
   TASK_SLOT: "{{.Task.Slot}}"
 
+
 services:
+
+#NOTE: simple OK echo for now, on any machine in swarm.
   healthcheck:
     image: davequick/image:healthcheck
     labels:
       gg.dq.desscription: "healthcheck"
-    environment:
-      <<: *global_env
     ports:
       - 6970:8080
     networks:
@@ -30,48 +32,15 @@ services:
     deploy:
       mode: replicated
       replicas: 3
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 100M
       endpoint_mode: vip
       restart_policy:
         condition: any
         delay: 60s
         window: 120s
-      update_config:
-        parallelism: 1
-        delay: 60s
-        monitor: 30s
-        order: stop-first
-        failure_action: rollback
-      placement:
-        constraints:
-          - node.role == worker
-        preferences:
-          - spread: node.labels.gg.dq.availability_zone
-
-  gateway:
-    image: davequick/image:gateway
-    labels:
-      gg.dq.description: "gateway"
-    environment:
-      <<: *global_env
-    networks:
-      - bridge
-      - backend
-    dns:
-      - 8.8.8.8
-    ports:
-      - "2222:22"
-
-  devboxspy:
-    image: davequick/image:spy
-    hostname: '{{index .Service.Labels "com.docker.stack.namespace"}}-{{index .Service.Labels "com.docker.stack.image"}}-{{.Task.Slot}}'
-    labels:
-      gg.dq.description: "spy"
-    environment:
-      <<: *global_env
-    command: ["sleep", "365d"]
-    networks:
-      - bridge
-      - backend
 
   consul:
     image: consul
@@ -85,36 +54,76 @@ services:
     networks:
       - backend
     deploy:
+      mode: replicated
       replicas: 3
-      restart_policy:
-        condition: any
-        delay: 60s
-      placement:
-#        constraints:
-        preferences:
-#          - node.role != manager
-          - spread: node.labels.zone
+
+#NOTE: Provide a means of accessing backend UIs of apps internal to me.  Available on port 2222, use as ssh proxy.
+  bastion:
+    image: davequick/image:bastion
+    labels:
+      gg.dq.description: "bastion"
+    environment:
+      <<: *global_env
+    networks:
+      - backend
+    dns:
+      - 8.8.8.8
+    ports:
+      - "2222:22"
+    deploy:
+      mode: replicated
+      replicas: 1
+
+#NOTE: reverse proxy tied into all deploying containers.  meant to ensure there is a means of reaching containers that
+#      publish http/https by host header - reads labels off of docker containers deployed.
+  traefik:
+    image: traefik
+    command: --api --docker # listen to docker, also expose UI on 8080 which only available on "backend" bastion
+    environment:
+      <<: *global_env
+    ports:
+      - "80:80"     # The HTTP port
+      - "443:443"     # The HTTPS port
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
+    networks:
+      - backend
+
+
+
+
 
 networks:
   backend:
     external: true
     driver: overlay
-    internal: true
     attachable: true
   bridge:
     external: true
     driver: bridge
 
-#  demo:
-#    image: ehazlett/docker-demo
+
 #    deploy:
-#      replicas: 1
-#      labels:
-#        com.docker.lb.hosts: test.davequick.localhost
-#        com.docker.lb.network: bridge
-#        com.docker.lb.port: 8080
-#    networks:
-#      - backend
+#      mode: replicated
+#      replicas: 3
+  #      endpoint_mode: vip
+  #      restart_policy:
+  #        condition: any
+  #        delay: 60s
+  #        window: 120s
+  #      update_config:
+  #        parallelism: 1
+  #        delay: 60s
+  #        monitor: 30s
+  #        order: stop-first
+  #        failure_action: rollback
+  #      placement:
+  #        constraints:
+  #          - node.role == worker
+  #        preferences:
+  #          - spread: node.labels.gg.dq.availability_zone
+  #  -client 0.0.0.0 – Consul should listen on all interfaces. It defaults to localhost only by default.
+
 
 #  registrator:
 #    image: gliderlabs/registrator
@@ -501,3 +510,35 @@ networks:
 #      - CASSANDRA_MAIN_URL=${CASSANDRA_MAIN_NAME}
 #      - CASSANDRA_COUNT_PORT=${CASSANDRA_COUNT_PORT}
 #      command: telegraf --output-filter ${TELEGRAF_OUTPUT_FILTER} -config /etc/telegraf/cassandra_count.conf
+
+#           if [ "$(docker inspect -f "{{.State.Health.Status}}" pihole)" == "healthy" ] ; then
+#           printf ' OK'
+#           echo -e "\n$(docker logs pihole 2> /dev/null | grep 'password:') for your pi-hole: https://${IP}/admin/"
+#           exit 0
+#           else
+#           sleep 3
+#           printf '.'
+#           fi
+
+
+
+#  for service in $(docker service ls -q); do
+#  docker service inspect --format \
+#  '{{.Spec.Name}}: {{range .Endpoint.VirtualIPs}}{{.Addr}} {{end}}' \
+#  ${service}
+#  done
+
+
+#There are 2 places to set labels in compose file, for container:
+#
+#services:
+#  foo:
+#    labels:
+#      xxx: xxx
+#and for service:
+#
+#services:
+#  foo:
+#    deploy:
+#      labels:
+#        xxx: xxx
